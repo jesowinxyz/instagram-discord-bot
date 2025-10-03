@@ -20,8 +20,9 @@ EMBED_COLOR = discord.Color.from_rgb(0, 255, 255)  # Bright Cyan
 INSTAGRAM_ACCENT = discord.Color.from_rgb(0, 200, 255)  # Instagram Blue-Cyan
 # =========================================
 
-# Promotional messages dataset (50+ messages)
+# Promotional messages dataset (100+ modern reel phrases)
 PROMO_MESSAGES = [
+    # Classic phrases
     "🎥 Watch my new reel!",
     "🚀 Just dropped something fresh!",
     "✨ New content alert! Check this out!",
@@ -30,6 +31,28 @@ PROMO_MESSAGES = [
     "🌟 Something special for you!",
     "👀 You need to see this!",
     "💫 Fresh off the press!",
+    
+    # Modern reel phrases
+    "⚡ NEW REEL UPLOADED!",
+    "🎬 Just posted a new reel - go check it out!",
+    "🔥 New reel is LIVE!",
+    "💫 Uploaded a fresh reel!",
+    "🎯 New reel alert!",
+    "✨ Latest reel is up!",
+    "🚀 Fresh reel just dropped!",
+    "💥 New reel posted - don't sleep on this!",
+    "🎥 Latest upload is here!",
+    "⭐ New reel available now!",
+    "🌟 Reel uploaded - check the link!",
+    "🔊 New reel announcement!",
+    "📱 Just uploaded - tap to watch!",
+    "🎪 New reel show time!",
+    "💎 Premium content uploaded!",
+    
+    # Trending phrases
+    "🔥 This reel is heating up!",
+    "⚡ Viral alert!",
+    "💯 100% worth your time!",
     "🎬 Lights, camera, action!",
     "🎯 Direct hit of awesome content!",
     "⚡ Electric vibes only!",
@@ -42,13 +65,22 @@ PROMO_MESSAGES = [
     "🌺 Blooming with creativity!",
     "🚁 Taking you higher with this!",
     "🎭 Performance of the day!",
+    
+    # Engagement phrases
     "🍿 Grab your popcorn for this!",
-    "🎸 Rocking your feed!",
+    "👀 You don't want to miss this!",
+    "🔥 It's giving main character energy!",
+    "✨ Serving looks and content!",
+    "💅 We're serving quality!",
+    "� Cinema level production!",
+    "�🎸 Rocking your feed!",
     "🌊 Making waves with this!",
     "🔮 Magic happens here!",
     "🎯 Hitting all the right notes!",
     "🌙 Moonlight vibes!",
     "☀️ Sunshine on your timeline!",
+    
+    # Hype phrases
     "🎪 Step right up and watch!",
     "🏅 Medal-worthy moment!",
     "🎨 Masterpiece alert!",
@@ -63,11 +95,13 @@ PROMO_MESSAGES = [
     "🎵 Music to my eyes!",
     "🔥 Too hot to handle!",
     "💎 Rare gem found!",
-    "🌈 Rainbow of awesomeness!",
-    "🎭 Drama and delight!",
-    "🎸 Strumming your heartstrings!",
-    "🌊 Surf's up on this content!",
-    "⚡ Lightning strikes twice!",
+    
+    # Social media lingo
+    "🌈 POV: You just found amazing content!",
+    "🎭 Plot twist: This reel is fire!",
+    "🎸 When the content hits different!",
+    "🌊 Riding the wave of creativity!",
+    "⚡ Lightning in a bottle!",
     "🎨 Canvas of creativity!",
     "🚁 Sky-high quality!",
     "🍿 Binge-worthy material!",
@@ -75,13 +109,54 @@ PROMO_MESSAGES = [
     "🌙 Dreamy content ahead!",
     "☀️ Brightening your day!",
     "🎪 Spectacular spectacular!",
-    "🏆 Championship content!",
-    "💫 Stardust and magic!",
-    "🌺 Exotic and exciting!",
+    
+    # Modern slang
+    "🏆 This hits different!",
+    "💫 Main character vibes!",
+    "🌺 No cap - this is fire!",
     "🎬 Oscar-worthy reel!",
     "🔮 Crystal clear quality!",
     "💝 Love at first sight!",
-    "🌸 Blossom into greatness!"
+    "🌸 Blossom into greatness!",
+    "⚡ Absolutely unhinged (in a good way)!",
+    "� The algorithm loves this one!",
+    "💎 Hidden gem unlocked!",
+    
+    # Call to action
+    "👉 Tap the link to watch!",
+    "🎬 Full video in the link!",
+    "📲 Click to see the magic!",
+    "🔗 Link to the reel below!",
+    "✨ Experience it yourself!",
+    "🎥 Press play and enjoy!",
+    "🚀 Launch into this content!",
+    "💫 Dive into this reel!",
+    "🎯 Hit that link!",
+    "⚡ Watch it before it goes viral!",
+    
+    # Aesthetic phrases
+    "� Soft aesthetic vibes!",
+    "🌙 Late night content drop!",
+    "☀️ Morning motivation reel!",
+    "� Cosmic content alert!",
+    "🎨 Visual masterpiece!",
+    "🌊 Chill vibes incoming!",
+    "🔥 Hot girl summer energy!",
+    "✨ Glowing up the feed!",
+    "� Luxury content delivered!",
+    "🎬 Hollywood level quality!",
+    
+    # Bonus modern phrases
+    "🎪 Certified banger alert!",
+    "⚡ Energy check: 100%!",
+    "🔥 Straight fire, no printer!",
+    "💯 Peak content achieved!",
+    "🚀 To infinity and beyond!",
+    "🎯 Sniper precision content!",
+    "💫 Star quality right here!",
+    "🌟 Radiating excellence!",
+    "🎬 Director's cut vibes!",
+    "⭐ Five-star content!",
 ]
 
 # File to store posted links
@@ -115,47 +190,89 @@ def extract_instagram_link(text):
     match = re.search(pattern, text)
     return match.group(0) if match else None
 
-# Fetch Instagram thumbnail (improved method)
+# Fetch Instagram thumbnail (improved method with multiple fallbacks)
 def get_instagram_thumbnail(instagram_url):
     try:
-        # Method 1: Try Instagram's oEmbed API (public endpoint)
-        oembed_url = f"https://www.instagram.com/p/oembed/?url={instagram_url}"
-        
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1'
         }
         
-        # Try oEmbed first
+        # Method 1: Try Instagram's public oEmbed API
         try:
+            oembed_url = f"https://www.instagram.com/p/oembed/?url={instagram_url}"
             oembed_response = requests.get(oembed_url, headers=headers, timeout=10)
             if oembed_response.status_code == 200:
                 oembed_data = oembed_response.json()
                 if 'thumbnail_url' in oembed_data:
+                    print(f"✅ Thumbnail fetched via oEmbed API")
                     return oembed_data['thumbnail_url']
-        except:
-            pass
+        except Exception as e:
+            print(f"⚠️ oEmbed method failed: {e}")
         
-        # Method 2: Scrape og:image from the page
+        # Method 2: Try external API service (InDown.io style)
         try:
-            response = requests.get(instagram_url, headers=headers, timeout=10)
+            # Extract post ID
+            post_id = instagram_url.rstrip('/').split('/')[-1]
+            # Try alternative oEmbed endpoint
+            alt_oembed = f"https://api.instagram.com/oembed?url={instagram_url}"
+            alt_response = requests.get(alt_oembed, headers=headers, timeout=10)
+            if alt_response.status_code == 200:
+                alt_data = alt_response.json()
+                if 'thumbnail_url' in alt_data:
+                    print(f"✅ Thumbnail fetched via alternative API")
+                    return alt_data['thumbnail_url']
+        except Exception as e:
+            print(f"⚠️ Alternative API method failed: {e}")
+        
+        # Method 3: Scrape og:image from the page
+        try:
+            response = requests.get(instagram_url, headers=headers, timeout=15)
             if response.status_code == 200:
                 # Look for og:image meta tag
                 og_image_match = re.search(r'<meta property="og:image" content="([^"]+)"', response.text)
                 if og_image_match:
-                    return og_image_match.group(1)
+                    thumbnail = og_image_match.group(1)
+                    print(f"✅ Thumbnail scraped from og:image")
+                    return thumbnail
                 
-                # Also try twitter:image
+                # Also try twitter:image as backup
                 twitter_image_match = re.search(r'<meta name="twitter:image" content="([^"]+)"', response.text)
                 if twitter_image_match:
+                    print(f"✅ Thumbnail scraped from twitter:image")
                     return twitter_image_match.group(1)
-        except:
-            pass
+                
+                # Try JSON data embedded in page
+                json_match = re.search(r'"display_url":"([^"]+)"', response.text)
+                if json_match:
+                    thumbnail = json_match.group(1).replace('\\u0026', '&')
+                    print(f"✅ Thumbnail extracted from JSON data")
+                    return thumbnail
+        except Exception as e:
+            print(f"⚠️ Scraping method failed: {e}")
         
-        # Fallback: return a generic Instagram icon
+        # Method 4: Try constructing thumbnail URL from post ID
+        try:
+            post_id = instagram_url.rstrip('/').split('/')[-1]
+            # Instagram CDN pattern (may work for some posts)
+            cdn_url = f"https://www.instagram.com/p/{post_id}/media/?size=l"
+            cdn_response = requests.head(cdn_url, headers=headers, timeout=5, allow_redirects=True)
+            if cdn_response.status_code == 200:
+                print(f"✅ Thumbnail from CDN URL")
+                return cdn_url
+        except Exception as e:
+            print(f"⚠️ CDN method failed: {e}")
+        
+        # Fallback: return Instagram icon
+        print(f"❌ All methods failed - using fallback icon")
         return "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png"
     
     except Exception as e:
-        print(f"Error fetching thumbnail: {e}")
+        print(f"❌ Critical error fetching thumbnail: {e}")
         # Return Instagram logo as fallback
         return "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png"
 
@@ -233,16 +350,15 @@ class InstagramURLModal(Modal, title="📸 Post Instagram Content"):
             # Pick random promo message
             promo_message = random.choice(PROMO_MESSAGES)
             
-            # Create embed
+            # Create embed with visible link
             embed = discord.Embed(
-                title=post_type,
-                description=promo_message,
-                url=clean_url,
-                color=INSTAGRAM_ACCENT,  # Instagram pink
+                title=f"⚡ {post_type}",
+                description=f"{promo_message}\n\n**🔗 [View on Instagram]({clean_url})**",
+                color=INSTAGRAM_ACCENT,
                 timestamp=datetime.utcnow()
             )
             embed.set_image(url=thumbnail_url)
-            embed.set_footer(text=" Posted by cassiel.ae  AMOLED Edition", icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png")
+            embed.set_footer(text="⚡ Posted by cassiel.ae • AMOLED Edition", icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png")
             
             # Post to channel
             await channel.send(embed=embed)
@@ -333,16 +449,15 @@ async def reel_command(ctx, *, url: str = None):
         # Pick random promo message
         promo_message = random.choice(PROMO_MESSAGES)
         
-        # Create embed
+        # Create embed with visible link
         embed = discord.Embed(
-            title=post_type,
-            description=promo_message,
-            url=instagram_url,
-            color=INSTAGRAM_ACCENT,  # Instagram pink
+            title=f"⚡ {post_type}",
+            description=f"{promo_message}\n\n**🔗 [View on Instagram]({instagram_url})**",
+            color=INSTAGRAM_ACCENT,
             timestamp=datetime.utcnow()
         )
         embed.set_image(url=thumbnail_url)
-        embed.set_footer(text=" Posted by cassiel.ae  AMOLED Edition", icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png")
+        embed.set_footer(text="⚡ Posted by cassiel.ae • AMOLED Edition", icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png")
         
         # Post to channel
         await channel.send(embed=embed)
@@ -409,16 +524,15 @@ async def on_message(message):
                     # Pick random promo message
                     promo_message = random.choice(PROMO_MESSAGES)
                     
-                    # Create embed
+                    # Create embed with visible link
                     embed = discord.Embed(
-                        title=post_type,
-                        description=promo_message,
-                        url=instagram_url,
-                        color=INSTAGRAM_ACCENT,  # Instagram pink
+                        title=f"⚡ {post_type}",
+                        description=f"{promo_message}\n\n**🔗 [View on Instagram]({instagram_url})**",
+                        color=INSTAGRAM_ACCENT,
                         timestamp=datetime.utcnow()
                     )
                     embed.set_image(url=thumbnail_url)
-                    embed.set_footer(text=" Posted by cassiel.ae  AMOLED Edition", icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png")
+                    embed.set_footer(text="⚡ Posted by cassiel.ae • AMOLED Edition", icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png")
                     
                     # Post to channel
                     await channel.send(embed=embed)
@@ -534,16 +648,15 @@ async def custom_post_command(ctx, instagram_url: str = None, thumbnail_url: str
         # Pick random promo message
         promo_message = random.choice(PROMO_MESSAGES)
         
-        # Create embed
+        # Create embed with visible link
         embed = discord.Embed(
-            title=post_type,
-            description=promo_message,
-            url=clean_url,
+            title=f"⚡ {post_type}",
+            description=f"{promo_message}\n\n**🔗 [View on Instagram]({clean_url})**",
             color=INSTAGRAM_ACCENT,
             timestamp=datetime.utcnow()
         )
         embed.set_image(url=thumbnail)
-        embed.set_footer(text=" Posted by cassiel.ae  AMOLED Edition", icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png")
+        embed.set_footer(text="⚡ Posted by cassiel.ae • AMOLED Edition", icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png")
         
         # Post to channel
         await channel.send(embed=embed)
