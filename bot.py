@@ -163,12 +163,19 @@ def get_post_type(instagram_url):
     else:
         return "Instagram Post"
 
-# Modal for clean URL input
+# Modal for clean URL input with optional thumbnail
 class InstagramURLModal(Modal, title="📸 Post Instagram Content"):
     url_input = TextInput(
         label="Instagram URL",
         placeholder="https://www.instagram.com/reel/xxxxxx/",
         required=True,
+        style=discord.TextStyle.short
+    )
+    
+    thumbnail_input = TextInput(
+        label="Custom Thumbnail URL (Optional)",
+        placeholder="Leave empty to auto-fetch, or paste image URL here",
+        required=False,
         style=discord.TextStyle.short
     )
     
@@ -206,8 +213,14 @@ class InstagramURLModal(Modal, title="📸 Post Instagram Content"):
                 )
                 return
             
-            # Fetch thumbnail
-            thumbnail_url = get_instagram_thumbnail(clean_url)
+            # Fetch thumbnail (use custom if provided, otherwise auto-fetch)
+            custom_thumbnail = self.thumbnail_input.value.strip()
+            if custom_thumbnail and custom_thumbnail.startswith('http'):
+                thumbnail_url = custom_thumbnail
+                thumbnail_source = "custom"
+            else:
+                thumbnail_url = get_instagram_thumbnail(clean_url)
+                thumbnail_source = "auto"
             
             # Get post type
             post_type = get_post_type(clean_url)
@@ -233,9 +246,10 @@ class InstagramURLModal(Modal, title="📸 Post Instagram Content"):
             posted_links.add(clean_url)
             save_posted_links(posted_links)
             
-            # Confirm to user
+            # Confirm to user with thumbnail info
+            thumbnail_info = "🎨 Custom thumbnail" if thumbnail_source == "custom" else "📸 Auto-fetched thumbnail"
             await interaction.followup.send(
-                f"✅ Successfully posted to <#{TARGET_CHANNEL_ID}>!\n🎉 {promo_message}",
+                f"✅ Successfully posted to <#{TARGET_CHANNEL_ID}>!\n🎉 {promo_message}\n{thumbnail_info}",
                 ephemeral=True
             )
         
@@ -406,13 +420,89 @@ async def panel_command(ctx):
     
     embed = discord.Embed(
         title="📸 Instagram Content Poster",
-        description="Click the button below to post Instagram content to your channel!\n\n**Features:**\n• Auto-detect reels and posts\n• Beautiful embeds with thumbnails\n• Random promotional messages\n• Duplicate prevention\n\n**How to use:**\n1. Click the button below, OR\n2. Use `!reel <link>` command, OR\n3. Just paste an Instagram link in my DMs!",
+        description="Click the button below to post Instagram content to your channel!\n\n**Features:**\n• Auto-detect reels and posts\n• Beautiful embeds with thumbnails\n• Custom thumbnail support\n• Random promotional messages\n• Duplicate prevention\n\n**How to use:**\n1. Click the button below (supports custom thumbnails!), OR\n2. Use `!reel <link>` command, OR\n3. Use `!custompost <link> <thumbnail_url>` for custom thumbnail, OR\n4. Just paste an Instagram link in my DMs!",
         color=discord.Color.from_rgb(225, 48, 108)
     )
     embed.set_thumbnail(url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png")
     
     view = InstagramView()
     await ctx.send(embed=embed, view=view)
+
+# Command to post with custom thumbnail
+@bot.command(name="custompost")
+async def custom_post_command(ctx, instagram_url: str = None, thumbnail_url: str = None):
+    """Post Instagram content with a custom thumbnail"""
+    # Check if command is used in the correct channel (if CONTROL_CHANNEL_ID is set)
+    if CONTROL_CHANNEL_ID != 0:
+        if isinstance(ctx.channel, discord.DMChannel):
+            pass
+        elif ctx.channel.id != CONTROL_CHANNEL_ID:
+            await ctx.send(f"❌ Please use this command in <#{CONTROL_CHANNEL_ID}> or DM me!", delete_after=5)
+            return
+    
+    if not instagram_url:
+        await ctx.send("❌ Please provide an Instagram URL!\nUsage: `!custompost <instagram_link> <thumbnail_url>`")
+        return
+    
+    # Extract Instagram link
+    clean_url = extract_instagram_link(instagram_url)
+    
+    if not clean_url:
+        await ctx.send("❌ Invalid Instagram URL! Please provide a valid Instagram post or reel link.")
+        return
+    
+    # Check for duplicates
+    if clean_url in posted_links:
+        await ctx.send("⚠️ This link has already been posted!")
+        return
+    
+    # Send processing message
+    processing_msg = await ctx.send("⏳ Processing your Instagram link with custom thumbnail...")
+    
+    try:
+        # Get the target channel
+        channel = bot.get_channel(TARGET_CHANNEL_ID)
+        if not channel:
+            await processing_msg.edit(content="❌ Error: Target channel not found! Please check the channel ID.")
+            return
+        
+        # Use custom thumbnail if provided, otherwise auto-fetch
+        if thumbnail_url and thumbnail_url.startswith('http'):
+            thumbnail = thumbnail_url
+            thumb_source = "🎨 Custom thumbnail"
+        else:
+            thumbnail = get_instagram_thumbnail(clean_url)
+            thumb_source = "📸 Auto-fetched thumbnail"
+        
+        # Get post type
+        post_type = get_post_type(clean_url)
+        
+        # Pick random promo message
+        promo_message = random.choice(PROMO_MESSAGES)
+        
+        # Create embed
+        embed = discord.Embed(
+            title=post_type,
+            description=promo_message,
+            url=clean_url,
+            color=discord.Color.from_rgb(225, 48, 108),
+            timestamp=datetime.utcnow()
+        )
+        embed.set_image(url=thumbnail)
+        embed.set_footer(text="Posted via Instagram Bot", icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png")
+        
+        # Post to channel
+        await channel.send(embed=embed)
+        
+        # Add to posted links
+        posted_links.add(clean_url)
+        save_posted_links(posted_links)
+        
+        # Confirm to user
+        await processing_msg.edit(content=f"✅ Successfully posted to <#{TARGET_CHANNEL_ID}>!\n🎉 {promo_message}\n{thumb_source}")
+    
+    except Exception as e:
+        await processing_msg.edit(content=f"❌ Error posting content: {str(e)}")
 
 # Command to clear posted links history
 @bot.command(name="clearhistory")
