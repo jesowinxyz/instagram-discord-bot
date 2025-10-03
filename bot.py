@@ -476,8 +476,8 @@ async def panel_command(ctx):
         ),
         color=THEME_COLOR
     )
-    embed.set_thumbnail(url="https://i.imgur.com/8jPFiKC.png")  # Cyan Instagram icon
-    embed.set_footer(text="⚡ Powered by cassiel.ae • AMOLED Edition", icon_url="https://i.imgur.com/8jPFiKC.png")
+    embed.set_thumbnail(url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png")  # Cyan Instagram icon
+    embed.set_footer(text="⚡ Powered by cassiel.ae • AMOLED Edition", icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png")
     
     view = InstagramView()
     await ctx.send(embed=embed, view=view)
@@ -572,7 +572,7 @@ async def clear_history(ctx):
         description="```ansi\n\u001b[1;36m▸ All posted links have been removed\u001b[0m\n```",
         color=THEME_COLOR
     )
-    embed.set_footer(text="⚡ Admin Action", icon_url="https://i.imgur.com/8jPFiKC.png")
+    embed.set_footer(text="⚡ Admin Action", icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png")
     await ctx.send(embed=embed)
 
 # Help command
@@ -692,9 +692,9 @@ async def help_command(ctx):
     # Support footer
     help_embed.set_footer(
         text="⚡ Powered by cassiel.ae • Need more help? DM the bot!",
-        icon_url="https://i.imgur.com/8jPFiKC.png"
+        icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png"
     )
-    help_embed.set_thumbnail(url="https://i.imgur.com/8jPFiKC.png")
+    help_embed.set_thumbnail(url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png")
     
     await ctx.send(embed=help_embed)
 
