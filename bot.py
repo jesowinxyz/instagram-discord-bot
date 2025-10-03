@@ -11,7 +11,8 @@ from datetime import datetime
 # ============= CONFIGURATION =============
 # Use environment variables for security (better for hosting)
 BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")  # Will use env variable if available
-TARGET_CHANNEL_ID = int(os.getenv("TARGET_CHANNEL_ID", "1334165445271617546"))  # Your Instagram feed channel
+TARGET_CHANNEL_ID = int(os.getenv("TARGET_CHANNEL_ID", "1334165445271617546"))  # Channel where Instagram posts appear
+CONTROL_CHANNEL_ID = int(os.getenv("CONTROL_CHANNEL_ID", "0"))  # Channel where you send commands (0 = any channel/DM)
 # =========================================
 
 # Promotional messages dataset (50+ messages)
@@ -109,32 +110,41 @@ def extract_instagram_link(text):
     match = re.search(pattern, text)
     return match.group(0) if match else None
 
-# Fetch Instagram thumbnail (using Instagram's oEmbed API)
+# Fetch Instagram thumbnail (improved method)
 def get_instagram_thumbnail(instagram_url):
     try:
-        # Instagram oEmbed endpoint
-        oembed_url = f"https://graph.facebook.com/v12.0/instagram_oembed?url={instagram_url}&access_token=YOUR_ACCESS_TOKEN"
+        # Method 1: Try Instagram's oEmbed API (public endpoint)
+        oembed_url = f"https://www.instagram.com/p/oembed/?url={instagram_url}"
         
-        # Alternative: Try to scrape the thumbnail from the page
-        # For a simple approach, we'll use a placeholder method
-        # In production, you might want to use Instagram's API or a scraping service
-        
-        # Simplified approach: construct thumbnail URL from Instagram post ID
-        # Instagram typically uses this pattern for thumbnails
-        post_id = instagram_url.rstrip('/').split('/')[-1]
-        
-        # Try to get metadata using requests
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
-        response = requests.get(instagram_url, headers=headers, timeout=10)
         
-        # Look for og:image in the HTML
-        if 'og:image' in response.text:
-            import re
-            og_image = re.search(r'<meta property="og:image" content="([^"]+)"', response.text)
-            if og_image:
-                return og_image.group(1)
+        # Try oEmbed first
+        try:
+            oembed_response = requests.get(oembed_url, headers=headers, timeout=10)
+            if oembed_response.status_code == 200:
+                oembed_data = oembed_response.json()
+                if 'thumbnail_url' in oembed_data:
+                    return oembed_data['thumbnail_url']
+        except:
+            pass
+        
+        # Method 2: Scrape og:image from the page
+        try:
+            response = requests.get(instagram_url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                # Look for og:image meta tag
+                og_image_match = re.search(r'<meta property="og:image" content="([^"]+)"', response.text)
+                if og_image_match:
+                    return og_image_match.group(1)
+                
+                # Also try twitter:image
+                twitter_image_match = re.search(r'<meta name="twitter:image" content="([^"]+)"', response.text)
+                if twitter_image_match:
+                    return twitter_image_match.group(1)
+        except:
+            pass
         
         # Fallback: return a generic Instagram icon
         return "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png"
@@ -247,6 +257,15 @@ class InstagramView(View):
 # Command to handle Instagram links (!reel command)
 @bot.command(name="reel")
 async def reel_command(ctx, *, url: str = None):
+    # Check if command is used in the correct channel (if CONTROL_CHANNEL_ID is set)
+    if CONTROL_CHANNEL_ID != 0:
+        if isinstance(ctx.channel, discord.DMChannel):
+            # Allow DMs
+            pass
+        elif ctx.channel.id != CONTROL_CHANNEL_ID:
+            await ctx.send(f"❌ Please use this command in <#{CONTROL_CHANNEL_ID}> or DM me!", delete_after=5)
+            return
+    
     if not url:
         await ctx.send("❌ Please provide an Instagram URL!\nUsage: `!reel <instagram_link>`")
         return
@@ -376,6 +395,15 @@ async def on_message(message):
 @bot.command(name="panel")
 async def panel_command(ctx):
     """Shows the Instagram posting panel with UI buttons"""
+    # Check if command is used in the correct channel (if CONTROL_CHANNEL_ID is set)
+    if CONTROL_CHANNEL_ID != 0:
+        if isinstance(ctx.channel, discord.DMChannel):
+            # Allow DMs
+            pass
+        elif ctx.channel.id != CONTROL_CHANNEL_ID:
+            await ctx.send(f"❌ Please use this command in <#{CONTROL_CHANNEL_ID}> or DM me!", delete_after=5)
+            return
+    
     embed = discord.Embed(
         title="📸 Instagram Content Poster",
         description="Click the button below to post Instagram content to your channel!\n\n**Features:**\n• Auto-detect reels and posts\n• Beautiful embeds with thumbnails\n• Random promotional messages\n• Duplicate prevention\n\n**How to use:**\n1. Click the button below, OR\n2. Use `!reel <link>` command, OR\n3. Just paste an Instagram link in my DMs!",
@@ -401,6 +429,10 @@ async def on_ready():
     print(f'✅ Bot is ready! Logged in as {bot.user}')
     print(f'📡 Bot ID: {bot.user.id}')
     print(f'🎯 Target Channel ID: {TARGET_CHANNEL_ID}')
+    if CONTROL_CHANNEL_ID != 0:
+        print(f'🎮 Control Channel ID: {CONTROL_CHANNEL_ID}')
+    else:
+        print(f'🎮 Control Channel: Any channel/DM allowed')
     print(f'📝 Loaded {len(posted_links)} previously posted links')
     print('=' * 50)
     
