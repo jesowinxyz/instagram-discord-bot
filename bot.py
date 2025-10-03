@@ -190,91 +190,94 @@ def extract_instagram_link(text):
     match = re.search(pattern, text)
     return match.group(0) if match else None
 
-# Fetch Instagram thumbnail (improved method with multiple fallbacks)
+# Fetch Instagram thumbnail (WORKING method with proper fallbacks)
+# Returns: (thumbnail_url, success_status)
+# success_status: True if real thumbnail found, False if using fallback
 def get_instagram_thumbnail(instagram_url):
     try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1'
-        }
+        # Clean URL - remove trailing slash and query parameters
+        clean_url = instagram_url.rstrip('/').split('?')[0]
         
-        # Method 1: Try Instagram's public oEmbed API
-        try:
-            oembed_url = f"https://www.instagram.com/p/oembed/?url={instagram_url}"
-            oembed_response = requests.get(oembed_url, headers=headers, timeout=10)
-            if oembed_response.status_code == 200:
-                oembed_data = oembed_response.json()
-                if 'thumbnail_url' in oembed_data:
-                    print(f"✅ Thumbnail fetched via oEmbed API")
-                    return oembed_data['thumbnail_url']
-        except Exception as e:
-            print(f"⚠️ oEmbed method failed: {e}")
+        print(f"🔍 Fetching thumbnail for: {clean_url}")
         
-        # Method 2: Try external API service (InDown.io style)
+        # Method 1: Instagram's Official oEmbed API (Most Reliable)
         try:
-            # Extract post ID
-            post_id = instagram_url.rstrip('/').split('/')[-1]
-            # Try alternative oEmbed endpoint
-            alt_oembed = f"https://api.instagram.com/oembed?url={instagram_url}"
-            alt_response = requests.get(alt_oembed, headers=headers, timeout=10)
-            if alt_response.status_code == 200:
-                alt_data = alt_response.json()
-                if 'thumbnail_url' in alt_data:
-                    print(f"✅ Thumbnail fetched via alternative API")
-                    return alt_data['thumbnail_url']
-        except Exception as e:
-            print(f"⚠️ Alternative API method failed: {e}")
-        
-        # Method 3: Scrape og:image from the page
-        try:
-            response = requests.get(instagram_url, headers=headers, timeout=15)
+            # Convert reel/tv URLs to /p/ format for oEmbed
+            if '/reel/' in clean_url:
+                oembed_url = clean_url.replace('/reel/', '/p/')
+            elif '/tv/' in clean_url:
+                oembed_url = clean_url.replace('/tv/', '/p/')
+            else:
+                oembed_url = clean_url
+            
+            api_url = f"https://graph.facebook.com/v12.0/instagram_oembed?url={oembed_url}&access_token=&fields=thumbnail_url"
+            
+            response = requests.get(api_url, timeout=10)
             if response.status_code == 200:
-                # Look for og:image meta tag
-                og_image_match = re.search(r'<meta property="og:image" content="([^"]+)"', response.text)
-                if og_image_match:
-                    thumbnail = og_image_match.group(1)
-                    print(f"✅ Thumbnail scraped from og:image")
-                    return thumbnail
-                
-                # Also try twitter:image as backup
-                twitter_image_match = re.search(r'<meta name="twitter:image" content="([^"]+)"', response.text)
-                if twitter_image_match:
-                    print(f"✅ Thumbnail scraped from twitter:image")
-                    return twitter_image_match.group(1)
-                
-                # Try JSON data embedded in page
-                json_match = re.search(r'"display_url":"([^"]+)"', response.text)
-                if json_match:
-                    thumbnail = json_match.group(1).replace('\\u0026', '&')
-                    print(f"✅ Thumbnail extracted from JSON data")
-                    return thumbnail
+                data = response.json()
+                if 'thumbnail_url' in data and data['thumbnail_url']:
+                    print(f"✅ Thumbnail fetched via Facebook Graph API")
+                    return (data['thumbnail_url'], True)
         except Exception as e:
-            print(f"⚠️ Scraping method failed: {e}")
+            print(f"⚠️ Facebook Graph API failed: {e}")
         
-        # Method 4: Try constructing thumbnail URL from post ID
+        # Method 2: Traditional oEmbed endpoint
         try:
-            post_id = instagram_url.rstrip('/').split('/')[-1]
-            # Instagram CDN pattern (may work for some posts)
-            cdn_url = f"https://www.instagram.com/p/{post_id}/media/?size=l"
-            cdn_response = requests.head(cdn_url, headers=headers, timeout=5, allow_redirects=True)
-            if cdn_response.status_code == 200:
-                print(f"✅ Thumbnail from CDN URL")
-                return cdn_url
+            oembed_endpoint = f"https://www.instagram.com/p/oembed/?url={clean_url}"
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            }
+            response = requests.get(oembed_endpoint, headers=headers, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                if 'thumbnail_url' in data and data['thumbnail_url']:
+                    print(f"✅ Thumbnail fetched via Instagram oEmbed")
+                    return (data['thumbnail_url'], True)
         except Exception as e:
-            print(f"⚠️ CDN method failed: {e}")
+            print(f"⚠️ Instagram oEmbed failed: {e}")
         
-        # Fallback: return Instagram icon
-        print(f"❌ All methods failed - using fallback icon")
-        return "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png"
+        # Method 3: Scrape the actual Instagram page
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'sec-fetch-dest': 'document',
+                'sec-fetch-mode': 'navigate',
+                'sec-fetch-site': 'none',
+            }
+            
+            response = requests.get(clean_url, headers=headers, timeout=15, allow_redirects=True)
+            
+            if response.status_code == 200:
+                html_content = response.text
+                
+                # Try multiple patterns to extract thumbnail
+                patterns = [
+                    r'"display_url":"(https://[^"]+)"',
+                    r'<meta property="og:image" content="([^"]+)"',
+                    r'<meta name="twitter:image" content="([^"]+)"',
+                    r'"thumbnail_src":"(https://[^"]+)"',
+                ]
+                
+                for pattern in patterns:
+                    match = re.search(pattern, html_content)
+                    if match:
+                        thumbnail = match.group(1)
+                        # Clean up the URL
+                        thumbnail = thumbnail.replace('\\u0026', '&').replace('&amp;', '&')
+                        print(f"✅ Thumbnail scraped from page HTML")
+                        return (thumbnail, True)
+        except Exception as e:
+            print(f"⚠️ Page scraping failed: {e}")
+        
+        # All methods failed - return None to trigger custom thumbnail prompt
+        print(f"❌ All methods failed - thumbnail fetch unsuccessful")
+        return (None, False)
     
     except Exception as e:
-        print(f"❌ Critical error fetching thumbnail: {e}")
-        # Return Instagram logo as fallback
-        return "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png"
+        print(f"❌ Critical error: {e}")
+        return (None, False)
 
 # Determine if it's a reel or post
 def get_post_type(instagram_url):
@@ -284,6 +287,73 @@ def get_post_type(instagram_url):
         return "Instagram Video"
     else:
         return "Instagram Post"
+
+# Modal for providing custom thumbnail when auto-fetch fails
+class CustomThumbnailModal(Modal, title="⚠️ Thumbnail Fetch Failed"):
+    thumbnail_input = TextInput(
+        label="Please Provide Custom Thumbnail URL",
+        placeholder="Paste image URL here (e.g., from ImgBB, Discord CDN)",
+        required=True,
+        style=discord.TextStyle.short
+    )
+    
+    def __init__(self, instagram_url, promo_message):
+        super().__init__()
+        self.instagram_url = instagram_url
+        self.promo_message = promo_message
+    
+    async def on_submit(self, interaction: discord.Interaction):
+        thumbnail_url = self.thumbnail_input.value.strip()
+        
+        if not thumbnail_url or not thumbnail_url.startswith('http'):
+            await interaction.response.send_message(
+                "❌ Invalid image URL! Please provide a valid HTTP/HTTPS image link.",
+                ephemeral=True
+            )
+            return
+        
+        await interaction.response.defer(ephemeral=True)
+        
+        try:
+            # Get the target channel
+            channel = bot.get_channel(TARGET_CHANNEL_ID)
+            if not channel:
+                await interaction.followup.send(
+                    "❌ Error: Target channel not found!",
+                    ephemeral=True
+                )
+                return
+            
+            # Get post type
+            post_type = get_post_type(self.instagram_url)
+            
+            # Create embed with custom thumbnail
+            embed = discord.Embed(
+                title=f"⚡ {post_type}",
+                description=f"{self.promo_message}\n\n**🔗 [View on Instagram]({self.instagram_url})**",
+                color=INSTAGRAM_ACCENT,
+                timestamp=datetime.utcnow()
+            )
+            embed.set_image(url=thumbnail_url)
+            embed.set_footer(text="⚡ Posted by cassiel.ae • AMOLED Edition", icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png")
+            
+            # Post to channel
+            await channel.send(embed=embed)
+            
+            # Add to posted links
+            posted_links.add(self.instagram_url)
+            save_posted_links(posted_links)
+            
+            await interaction.followup.send(
+                f"✅ Successfully posted with custom thumbnail!\n🎉 {self.promo_message}",
+                ephemeral=True
+            )
+        
+        except Exception as e:
+            await interaction.followup.send(
+                f"❌ Error posting content: {str(e)}",
+                ephemeral=True
+            )
 
 # Modal for clean URL input with optional thumbnail
 class InstagramURLModal(Modal, title="📸 Post Instagram Content"):
@@ -314,13 +384,7 @@ class InstagramURLModal(Modal, title="📸 Post Instagram Content"):
             )
             return
         
-        # Check for duplicates
-        if clean_url in posted_links:
-            await interaction.response.send_message(
-                "⚠️ This link has already been posted!",
-                ephemeral=True
-            )
-            return
+        # REMOVED DUPLICATE CHECK - Allow posting same link multiple times
         
         # Defer the response as fetching might take time
         await interaction.response.defer(ephemeral=True)
@@ -335,20 +399,40 @@ class InstagramURLModal(Modal, title="📸 Post Instagram Content"):
                 )
                 return
             
+            # Get post type and promo message
+            post_type = get_post_type(clean_url)
+            promo_message = random.choice(PROMO_MESSAGES)
+            
             # Fetch thumbnail (use custom if provided, otherwise auto-fetch)
             custom_thumbnail = self.thumbnail_input.value.strip()
             if custom_thumbnail and custom_thumbnail.startswith('http'):
                 thumbnail_url = custom_thumbnail
+                thumbnail_success = True
                 thumbnail_source = "custom"
             else:
-                thumbnail_url = get_instagram_thumbnail(clean_url)
+                thumbnail_url, thumbnail_success = get_instagram_thumbnail(clean_url)
                 thumbnail_source = "auto"
-            
-            # Get post type
-            post_type = get_post_type(clean_url)
-            
-            # Pick random promo message
-            promo_message = random.choice(PROMO_MESSAGES)
+                
+                # If auto-fetch failed, prompt for custom thumbnail
+                if not thumbnail_success:
+                    await interaction.followup.send(
+                        "⚠️ **Unable to auto-fetch thumbnail!**\n\n"
+                        "Please provide a custom thumbnail URL to complete the post.\n\n"
+                        "**How to get an image URL:**\n"
+                        "1️⃣ Upload image to Discord (DM yourself) → Right-click → Copy Link\n"
+                        "2️⃣ Use ImgBB.com → Upload → Copy Direct Link\n"
+                        "3️⃣ Use PostImages.org → Upload → Copy Direct Link\n\n"
+                        "A form will appear next where you can paste the thumbnail URL.",
+                        ephemeral=True
+                    )
+                    # Send the custom thumbnail modal
+                    custom_modal = CustomThumbnailModal(clean_url, promo_message)
+                    await interaction.followup.send(
+                        "Click the button below to provide custom thumbnail:",
+                        view=CustomThumbnailView(clean_url, promo_message),
+                        ephemeral=True
+                    )
+                    return
             
             # Create embed with visible link
             embed = discord.Embed(
@@ -379,6 +463,18 @@ class InstagramURLModal(Modal, title="📸 Post Instagram Content"):
                 f"❌ Error posting content: {str(e)}",
                 ephemeral=True
             )
+
+# View with button to open custom thumbnail modal
+class CustomThumbnailView(View):
+    def __init__(self, instagram_url, promo_message):
+        super().__init__(timeout=300)  # 5 minute timeout
+        self.instagram_url = instagram_url
+        self.promo_message = promo_message
+    
+    @discord.ui.button(label="📷 Add Custom Thumbnail", style=discord.ButtonStyle.primary, emoji="✨")
+    async def add_thumbnail_button(self, interaction: discord.Interaction, button: Button):
+        modal = CustomThumbnailModal(self.instagram_url, self.promo_message)
+        await interaction.response.send_modal(modal)
 
 # View with button to open modal
 class InstagramView(View):
@@ -412,10 +508,7 @@ async def reel_command(ctx, *, url: str = None):
         await ctx.send("❌ Invalid Instagram URL! Please provide a valid Instagram post or reel link.")
         return
     
-    # Check for duplicates
-    if instagram_url in posted_links:
-        await ctx.send("⚠️ This link has already been posted!")
-        return
+    # REMOVED DUPLICATE CHECK - Allow posting same link multiple times
     
     # Send processing message
     processing_msg = await ctx.send("⏳ Processing your Instagram link...")
@@ -433,15 +526,28 @@ async def reel_command(ctx, *, url: str = None):
             attachment = ctx.message.attachments[0]
             if attachment.content_type and attachment.content_type.startswith('image/'):
                 thumbnail_url = attachment.url
+                thumbnail_success = True
                 thumb_source = "🎨 Custom uploaded thumbnail"
             else:
                 # Not an image, auto-fetch
-                thumbnail_url = get_instagram_thumbnail(instagram_url)
+                thumbnail_url, thumbnail_success = get_instagram_thumbnail(instagram_url)
                 thumb_source = "📸 Auto-fetched thumbnail"
         else:
             # No attachment, auto-fetch
-            thumbnail_url = get_instagram_thumbnail(instagram_url)
+            thumbnail_url, thumbnail_success = get_instagram_thumbnail(instagram_url)
             thumb_source = "📸 Auto-fetched thumbnail"
+        
+        # If auto-fetch failed and no custom thumbnail, ask for one
+        if not thumbnail_success:
+            await processing_msg.edit(
+                content="⚠️ **Unable to auto-fetch thumbnail!**\n\n"
+                "Please provide a custom thumbnail. You can either:\n"
+                "1️⃣ Use `!reel` command with an attached image\n"
+                "2️⃣ Use `!custompost` command to provide thumbnail URL\n"
+                "3️⃣ Use `!panel` and fill in the custom thumbnail field\n\n"
+                "**Quick method:** Reply to this message with the thumbnail image attached and the Instagram link!"
+            )
+            return
         
         # Get post type
         post_type = get_post_type(instagram_url)
@@ -487,10 +593,7 @@ async def on_message(message):
         if instagram_url:
             # Check if it's not a command
             if not message.content.startswith('!'):
-                # Check for duplicates
-                if instagram_url in posted_links:
-                    await message.channel.send("⚠️ This link has already been posted!")
-                    return
+                # REMOVED DUPLICATE CHECK - Allow posting same link multiple times
                 
                 # Send processing message
                 processing_msg = await message.channel.send("⏳ Processing your Instagram link...")
@@ -508,15 +611,25 @@ async def on_message(message):
                         attachment = message.attachments[0]
                         if attachment.content_type and attachment.content_type.startswith('image/'):
                             thumbnail_url = attachment.url
+                            thumbnail_success = True
                             thumb_source = "🎨 Custom uploaded thumbnail"
                         else:
                             # Not an image, auto-fetch
-                            thumbnail_url = get_instagram_thumbnail(instagram_url)
+                            thumbnail_url, thumbnail_success = get_instagram_thumbnail(instagram_url)
                             thumb_source = "📸 Auto-fetched thumbnail"
                     else:
                         # No attachment, auto-fetch
-                        thumbnail_url = get_instagram_thumbnail(instagram_url)
+                        thumbnail_url, thumbnail_success = get_instagram_thumbnail(instagram_url)
                         thumb_source = "📸 Auto-fetched thumbnail"
+                    
+                    # If auto-fetch failed, ask for custom thumbnail
+                    if not thumbnail_success:
+                        await message.channel.send(
+                            "⚠️ **Unable to auto-fetch thumbnail!**\n\n"
+                            "Please send the Instagram link again with a thumbnail image attached,\n"
+                            "or use the `!custompost` command to provide a thumbnail URL."
+                        )
+                        return
                     
                     # Get post type
                     post_type = get_post_type(instagram_url)
@@ -619,10 +732,7 @@ async def custom_post_command(ctx, instagram_url: str = None, thumbnail_url: str
         await ctx.send("❌ Invalid Instagram URL! Please provide a valid Instagram post or reel link.")
         return
     
-    # Check for duplicates
-    if clean_url in posted_links:
-        await ctx.send("⚠️ This link has already been posted!")
-        return
+    # REMOVED DUPLICATE CHECK - Allow posting same link multiple times
     
     # Send processing message
     processing_msg = await ctx.send("⏳ Processing your Instagram link with custom thumbnail...")
@@ -637,10 +747,24 @@ async def custom_post_command(ctx, instagram_url: str = None, thumbnail_url: str
         # Use custom thumbnail if provided, otherwise auto-fetch
         if thumbnail_url and thumbnail_url.startswith('http'):
             thumbnail = thumbnail_url
+            thumbnail_success = True
             thumb_source = "🎨 Custom thumbnail"
         else:
-            thumbnail = get_instagram_thumbnail(clean_url)
+            thumbnail, thumbnail_success = get_instagram_thumbnail(clean_url)
             thumb_source = "📸 Auto-fetched thumbnail"
+        
+        # If auto-fetch failed and no custom thumbnail, ask for one
+        if not thumbnail_success:
+            await processing_msg.edit(
+                content="⚠️ **Unable to auto-fetch thumbnail!**\n\n"
+                "Please use the command again with a valid thumbnail URL:\n"
+                "`!custompost <instagram_url> <thumbnail_url>`\n\n"
+                "**How to get a thumbnail URL:**\n"
+                "• Upload to Discord → Right-click → Copy Link\n"
+                "• Use ImgBB.com or PostImages.org\n"
+                "• Or use `!reel` with an attached image"
+            )
+            return
         
         # Get post type
         post_type = get_post_type(clean_url)
