@@ -13,6 +13,11 @@ from datetime import datetime
 BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")  # Will use env variable if available
 TARGET_CHANNEL_ID = int(os.getenv("TARGET_CHANNEL_ID", "1334165445271617546"))  # Channel where Instagram posts appear
 CONTROL_CHANNEL_ID = int(os.getenv("CONTROL_CHANNEL_ID", "0"))  # Channel where you send commands (0 = any channel/DM)
+
+# AMOLED Theme Colors
+THEME_COLOR = discord.Color.from_rgb(0, 229, 255)  # Cyan Blue
+EMBED_COLOR = discord.Color.from_rgb(0, 255, 255)  # Bright Cyan
+INSTAGRAM_ACCENT = discord.Color.from_rgb(0, 200, 255)  # Instagram Blue-Cyan
 # =========================================
 
 # Promotional messages dataset (50+ messages)
@@ -233,11 +238,11 @@ class InstagramURLModal(Modal, title="📸 Post Instagram Content"):
                 title=post_type,
                 description=promo_message,
                 url=clean_url,
-                color=discord.Color.from_rgb(225, 48, 108),  # Instagram pink
+                color=INSTAGRAM_ACCENT,  # Instagram pink
                 timestamp=datetime.utcnow()
             )
             embed.set_image(url=thumbnail_url)
-            embed.set_footer(text="Posted via Instagram Bot", icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png")
+            embed.set_footer(text=" Posted by cassiel.ae  AMOLED Edition", icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png")
             
             # Post to channel
             await channel.send(embed=embed)
@@ -264,7 +269,7 @@ class InstagramView(View):
     def __init__(self):
         super().__init__(timeout=None)
     
-    @discord.ui.button(label="📸 Post Instagram Content", style=discord.ButtonStyle.primary, custom_id="post_instagram")
+    @discord.ui.button(label="⚡ POST INSTAGRAM CONTENT", style=discord.ButtonStyle.primary, custom_id="post_instagram", emoji="🎬")
     async def post_button(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(InstagramURLModal())
 
@@ -306,8 +311,21 @@ async def reel_command(ctx, *, url: str = None):
             await processing_msg.edit(content="❌ Error: Target channel not found! Please check the channel ID.")
             return
         
-        # Fetch thumbnail
-        thumbnail_url = get_instagram_thumbnail(instagram_url)
+        # Check if user attached an image (custom thumbnail)
+        if ctx.message.attachments and len(ctx.message.attachments) > 0:
+            # Use the first attachment as custom thumbnail
+            attachment = ctx.message.attachments[0]
+            if attachment.content_type and attachment.content_type.startswith('image/'):
+                thumbnail_url = attachment.url
+                thumb_source = "🎨 Custom uploaded thumbnail"
+            else:
+                # Not an image, auto-fetch
+                thumbnail_url = get_instagram_thumbnail(instagram_url)
+                thumb_source = "📸 Auto-fetched thumbnail"
+        else:
+            # No attachment, auto-fetch
+            thumbnail_url = get_instagram_thumbnail(instagram_url)
+            thumb_source = "📸 Auto-fetched thumbnail"
         
         # Get post type
         post_type = get_post_type(instagram_url)
@@ -320,11 +338,11 @@ async def reel_command(ctx, *, url: str = None):
             title=post_type,
             description=promo_message,
             url=instagram_url,
-            color=discord.Color.from_rgb(225, 48, 108),  # Instagram pink
+            color=INSTAGRAM_ACCENT,  # Instagram pink
             timestamp=datetime.utcnow()
         )
         embed.set_image(url=thumbnail_url)
-        embed.set_footer(text="Posted via Instagram Bot", icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png")
+        embed.set_footer(text=" Posted by cassiel.ae  AMOLED Edition", icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png")
         
         # Post to channel
         await channel.send(embed=embed)
@@ -334,7 +352,7 @@ async def reel_command(ctx, *, url: str = None):
         save_posted_links(posted_links)
         
         # Confirm to user
-        await processing_msg.edit(content=f"✅ Successfully posted to <#{TARGET_CHANNEL_ID}>!\n🎉 {promo_message}")
+        await processing_msg.edit(content=f"✅ Successfully posted to <#{TARGET_CHANNEL_ID}>!\n🎉 {promo_message}\n{thumb_source}")
     
     except Exception as e:
         await processing_msg.edit(content=f"❌ Error posting content: {str(e)}")
@@ -369,8 +387,21 @@ async def on_message(message):
                         await processing_msg.edit(content="❌ Error: Target channel not found! Please check the channel ID.")
                         return
                     
-                    # Fetch thumbnail
-                    thumbnail_url = get_instagram_thumbnail(instagram_url)
+                    # Check if user attached an image (custom thumbnail)
+                    if message.attachments and len(message.attachments) > 0:
+                        # Use the first attachment as custom thumbnail
+                        attachment = message.attachments[0]
+                        if attachment.content_type and attachment.content_type.startswith('image/'):
+                            thumbnail_url = attachment.url
+                            thumb_source = "🎨 Custom uploaded thumbnail"
+                        else:
+                            # Not an image, auto-fetch
+                            thumbnail_url = get_instagram_thumbnail(instagram_url)
+                            thumb_source = "📸 Auto-fetched thumbnail"
+                    else:
+                        # No attachment, auto-fetch
+                        thumbnail_url = get_instagram_thumbnail(instagram_url)
+                        thumb_source = "📸 Auto-fetched thumbnail"
                     
                     # Get post type
                     post_type = get_post_type(instagram_url)
@@ -383,11 +414,11 @@ async def on_message(message):
                         title=post_type,
                         description=promo_message,
                         url=instagram_url,
-                        color=discord.Color.from_rgb(225, 48, 108),  # Instagram pink
+                        color=INSTAGRAM_ACCENT,  # Instagram pink
                         timestamp=datetime.utcnow()
                     )
                     embed.set_image(url=thumbnail_url)
-                    embed.set_footer(text="Posted via Instagram Bot", icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png")
+                    embed.set_footer(text=" Posted by cassiel.ae  AMOLED Edition", icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png")
                     
                     # Post to channel
                     await channel.send(embed=embed)
@@ -397,7 +428,7 @@ async def on_message(message):
                     save_posted_links(posted_links)
                     
                     # Confirm to user
-                    await processing_msg.edit(content=f"✅ Successfully posted to <#{TARGET_CHANNEL_ID}>!\n🎉 {promo_message}")
+                    await processing_msg.edit(content=f"✅ Successfully posted to <#{TARGET_CHANNEL_ID}>!\n🎉 {promo_message}\n{thumb_source}")
                 
                 except Exception as e:
                     await processing_msg.edit(content=f"❌ Error posting content: {str(e)}")
@@ -419,11 +450,34 @@ async def panel_command(ctx):
             return
     
     embed = discord.Embed(
-        title="📸 Instagram Content Poster",
-        description="Click the button below to post Instagram content to your channel!\n\n**Features:**\n• Auto-detect reels and posts\n• Beautiful embeds with thumbnails\n• Custom thumbnail support\n• Random promotional messages\n• Duplicate prevention\n\n**How to use:**\n1. Click the button below (supports custom thumbnails!), OR\n2. Use `!reel <link>` command, OR\n3. Use `!custompost <link> <thumbnail_url>` for custom thumbnail, OR\n4. Just paste an Instagram link in my DMs!",
-        color=discord.Color.from_rgb(225, 48, 108)
+        title="⚡ INSTAGRAM CONTENT POSTER",
+        description=(
+            "━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            "```ansi\n"
+            "\u001b[1;36m▸ AMOLED DARK MODE ENABLED\u001b[0m\n"
+            "```\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            "**✨ FEATURES**\n"
+            "🎬 Auto-detect reels & posts\n"
+            "🖼️ Beautiful cyan-themed embeds\n"
+            "📸 Custom thumbnail support\n"
+            "📱 Upload from phone/PC\n"
+            "🎲 Random promo messages\n"
+            "🔒 Duplicate prevention\n\n"
+            "**🎯 HOW TO USE**\n"
+            "**1.** Click the button below\n"
+            "**2.** `!reel <link>` + attach image\n"
+            "**3.** `!custompost <link> <url>`\n"
+            "**4.** DM bot with link + image\n\n"
+            "**📱 MOBILE UPLOAD**\n"
+            "Attach image when sending link!\n\n"
+            "**Need help?** Type `!helpae`\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━"
+        ),
+        color=THEME_COLOR
     )
-    embed.set_thumbnail(url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png")
+    embed.set_thumbnail(url="https://i.imgur.com/8jPFiKC.png")  # Cyan Instagram icon
+    embed.set_footer(text="⚡ Powered by cassiel.ae • AMOLED Edition", icon_url="https://i.imgur.com/8jPFiKC.png")
     
     view = InstagramView()
     await ctx.send(embed=embed, view=view)
@@ -485,11 +539,11 @@ async def custom_post_command(ctx, instagram_url: str = None, thumbnail_url: str
             title=post_type,
             description=promo_message,
             url=clean_url,
-            color=discord.Color.from_rgb(225, 48, 108),
+            color=INSTAGRAM_ACCENT,
             timestamp=datetime.utcnow()
         )
         embed.set_image(url=thumbnail)
-        embed.set_footer(text="Posted via Instagram Bot", icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png")
+        embed.set_footer(text=" Posted by cassiel.ae  AMOLED Edition", icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png")
         
         # Post to channel
         await channel.send(embed=embed)
@@ -512,7 +566,137 @@ async def clear_history(ctx):
     global posted_links
     posted_links.clear()
     save_posted_links(posted_links)
-    await ctx.send("✅ Posted links history has been cleared!")
+    
+    embed = discord.Embed(
+        title="🗑️ HISTORY CLEARED",
+        description="```ansi\n\u001b[1;36m▸ All posted links have been removed\u001b[0m\n```",
+        color=THEME_COLOR
+    )
+    embed.set_footer(text="⚡ Admin Action", icon_url="https://i.imgur.com/8jPFiKC.png")
+    await ctx.send(embed=embed)
+
+# Help command
+@bot.command(name="helpae")
+async def help_command(ctx):
+    """Show comprehensive help information with AMOLED theme"""
+    # Check if command is used in the correct channel (if CONTROL_CHANNEL_ID is set)
+    if CONTROL_CHANNEL_ID != 0:
+        if isinstance(ctx.channel, discord.DMChannel):
+            pass
+        elif ctx.channel.id != CONTROL_CHANNEL_ID:
+            await ctx.send(f"❌ Please use this command in <#{CONTROL_CHANNEL_ID}> or DM me!", delete_after=5)
+            return
+    
+    # Main help embed
+    help_embed = discord.Embed(
+        title="⚡ INSTAGRAM BOT HELP CENTER",
+        description=(
+            "```ansi\n"
+            "\u001b[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m\n"
+            "\u001b[1;37m    AMOLED DARK MODE • CYAN EDITION\u001b[0m\n"
+            "\u001b[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m\n"
+            "```"
+        ),
+        color=THEME_COLOR
+    )
+    
+    # Commands section
+    help_embed.add_field(
+        name="📋 COMMANDS",
+        value=(
+            "```css\n"
+            "!panel\n"
+            "  └─ Show posting UI with button\n\n"
+            "!reel <link>\n"
+            "  └─ Post Instagram link\n"
+            "  └─ Optional: Attach image file\n\n"
+            "!custompost <link> <thumbnail_url>\n"
+            "  └─ Post with custom thumbnail URL\n\n"
+            "!helpae\n"
+            "  └─ Show this help menu\n\n"
+            "!clearhistory [ADMIN]\n"
+            "  └─ Clear posted links history\n"
+            "```"
+        ),
+        inline=False
+    )
+    
+    # Features section
+    help_embed.add_field(
+        name="✨ FEATURES",
+        value=(
+            "```yaml\n"
+            "Auto-Detection: Instagram reels & posts\n"
+            "Thumbnails: Auto-fetch or custom upload\n"
+            "File Upload: From PC/Android/iOS\n"
+            "Promo Messages: 50+ random variations\n"
+            "Duplicate Block: Prevents re-posting\n"
+            "Channel Control: Separate command & post channels\n"
+            "```"
+        ),
+        inline=False
+    )
+    
+    # Usage examples
+    help_embed.add_field(
+        name="🎯 USAGE EXAMPLES",
+        value=(
+            "```ini\n"
+            "[Method 1: UI Panel]\n"
+            "  1. Type: !panel\n"
+            "  2. Click button\n"
+            "  3. Paste link + optional thumbnail URL\n\n"
+            "[Method 2: Command with Upload]\n"
+            "  1. Attach image file\n"
+            "  2. Type: !reel <instagram_link>\n"
+            "  3. Send!\n\n"
+            "[Method 3: DM Auto-detect]\n"
+            "  1. DM the bot\n"
+            "  2. Paste Instagram link\n"
+            "  3. Optional: Attach image\n"
+            "```"
+        ),
+        inline=False
+    )
+    
+    # Mobile upload guide
+    help_embed.add_field(
+        name="📱 MOBILE UPLOAD (Android/iOS)",
+        value=(
+            "```diff\n"
+            "+ Step 1: Open Discord on phone\n"
+            "+ Step 2: Tap \"+\" icon in chat\n"
+            "+ Step 3: Select image from gallery\n"
+            "+ Step 4: Type Instagram link\n"
+            "+ Step 5: Send message\n"
+            "```"
+        ),
+        inline=False
+    )
+    
+    # Configuration info
+    config_value = f"```ansi\n"
+    config_value += f"\u001b[1;36mTarget Channel:\u001b[0m <#{TARGET_CHANNEL_ID}>\n"
+    if CONTROL_CHANNEL_ID != 0:
+        config_value += f"\u001b[1;36mControl Channel:\u001b[0m <#{CONTROL_CHANNEL_ID}>\n"
+    else:
+        config_value += f"\u001b[1;36mControl Channel:\u001b[0m Any channel/DM\n"
+    config_value += f"```"
+    
+    help_embed.add_field(
+        name="⚙️ CURRENT CONFIGURATION",
+        value=config_value,
+        inline=False
+    )
+    
+    # Support footer
+    help_embed.set_footer(
+        text="⚡ Powered by cassiel.ae • Need more help? DM the bot!",
+        icon_url="https://i.imgur.com/8jPFiKC.png"
+    )
+    help_embed.set_thumbnail(url="https://i.imgur.com/8jPFiKC.png")
+    
+    await ctx.send(embed=help_embed)
 
 @bot.event
 async def on_ready():
